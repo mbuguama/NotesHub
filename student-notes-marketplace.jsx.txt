@@ -1,0 +1,890 @@
+import { useState, useEffect } from "react";
+
+// ─── GLOBAL STYLES ────────────────────────────────────────────
+const GlobalStyles = () => (
+  <style>{`
+    @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f7f4ef;
+      --bg2: #edeae3;
+      --surface: #ffffff;
+      --surface2: #f9f7f4;
+      --border: #e2ddd6;
+      --border2: #ccc7be;
+      --ink: #1a1714;
+      --ink2: #5c5650;
+      --ink3: #9c978f;
+      --accent: #2d6a4f;
+      --accent-light: #d8f3dc;
+      --accent2: #e76f51;
+      --accent2-light: #fde8e1;
+      --gold: #c9a84c;
+      --gold-light: #fef6e0;
+      --info: #457b9d;
+      --info-light: #dbeafe;
+      --danger: #c1121f;
+      --danger-light: #ffe0e0;
+      --radius: 10px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      --shadow-sm: 0 1px 4px rgba(26,23,20,0.07);
+      --shadow: 0 4px 20px rgba(26,23,20,0.10);
+      --shadow-lg: 0 12px 40px rgba(26,23,20,0.14);
+      --font-display: 'DM Serif Display', serif;
+      --font-body: 'DM Sans', sans-serif;
+      --transition: all 0.18s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    html, body, #root { height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-body);
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button { font-family: var(--font-body); cursor: pointer; border: none; outline: none; }
+    input, select, textarea {
+      font-family: var(--font-body);
+      font-size: 14px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      color: var(--ink);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      width: 100%;
+      outline: none;
+      transition: var(--transition);
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(45,106,79,0.12);
+    }
+    input::placeholder, textarea::placeholder { color: var(--ink3); }
+    select option { background: white; }
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--ink2); margin-bottom: 5px; letter-spacing: 0.03em; }
+    .field { margin-bottom: 16px; }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+    @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+    @keyframes slideRight { from { opacity:0; transform:translateX(-16px); } to { opacity:1; transform:translateX(0); } }
+    @keyframes scaleIn { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }
+
+    .fade-up { animation: fadeUp 0.35s ease forwards; }
+    .fade-in { animation: fadeIn 0.25s ease forwards; }
+  `}</style>
+);
+
+// ─── SEED DATA ─────────────────────────────────────────────────
+const SEED = {
+  users: [
+    { id: 1, name: "Amara Osei", email: "amara@student.edu", password: "pass123", institution: "University of Ghana", course: "BSc Computer Science", role: "student", joined: "2024-01-10", earnings: 0, sales: 0 },
+    { id: 2, name: "Lena Fischer", email: "lena@uni.de", password: "pass123", institution: "TU Berlin", course: "MSc Data Science", role: "student", joined: "2024-02-05", earnings: 0, sales: 0 },
+    { id: 3, name: "admin", email: "admin@noteshub.com", password: "admin123", role: "admin", institution: "", course: "" },
+  ],
+  documents: [
+    { id: 1, sellerId: 1, title: "Complete Data Structures Notes", description: "Comprehensive notes covering arrays, linked lists, trees, graphs, and dynamic programming with solved examples.", course: "Data Structures & Algorithms", institution: "University of Ghana", price: 4.99, status: "approved", downloads: 38, previewPages: 3, fileType: "PDF", uploadDate: "2024-03-12", tags: ["algorithms", "CS", "programming"] },
+    { id: 2, sellerId: 2, title: "Machine Learning Fundamentals", description: "Everything from linear regression to neural networks. Includes derivations, cheat sheets, and exam tips.", course: "Introduction to Machine Learning", institution: "TU Berlin", price: 7.99, status: "approved", downloads: 61, previewPages: 2, fileType: "PDF", uploadDate: "2024-03-18", tags: ["ML", "AI", "math"] },
+    { id: 3, sellerId: 1, title: "Calculus II Study Guide", description: "Integration techniques, series, and multivariable calculus. Color-coded diagrams and practice problems.", course: "Calculus II", institution: "University of Ghana", price: 3.49, status: "approved", downloads: 24, previewPages: 2, fileType: "DOCX", uploadDate: "2024-04-01", tags: ["math", "calculus"] },
+    { id: 4, sellerId: 2, title: "Database Systems Complete Pack", description: "ER diagrams, normalization, SQL queries, transactions, and indexing. Great for finals prep.", course: "Database Systems", institution: "TU Berlin", price: 5.99, status: "pending", downloads: 0, previewPages: 1, fileType: "PDF", uploadDate: "2024-04-20", tags: ["databases", "SQL", "CS"] },
+    { id: 5, sellerId: 1, title: "Operating Systems Notes", description: "Processes, threads, memory management, file systems, and concurrency with examples.", course: "Operating Systems", institution: "University of Ghana", price: 6.49, status: "approved", downloads: 17, previewPages: 2, fileType: "PDF", uploadDate: "2024-04-15", tags: ["OS", "CS", "systems"] },
+    { id: 6, sellerId: 2, title: "Statistics for Engineers", description: "Probability distributions, hypothesis testing, regression analysis, and ANOVA.", course: "Engineering Statistics", institution: "TU Berlin", price: 4.29, status: "rejected", downloads: 0, previewPages: 1, fileType: "DOCX", uploadDate: "2024-04-18", tags: ["statistics", "math"] },
+  ],
+  purchases: [
+    { id: 1, buyerId: 1, documentId: 2, amount: 7.99, date: "2024-04-10", commission: 1.60 },
+    { id: 2, buyerId: 2, documentId: 1, amount: 4.99, date: "2024-04-12", commission: 1.00 },
+  ],
+  payoutRequests: [],
+};
+
+const COMMISSION = 0.20;
+
+// ─── UTILS ─────────────────────────────────────────────────────
+const fmt = (n) => `$${(n || 0).toFixed(2)}`;
+const fmtDate = (d) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+const uid = () => Date.now() + Math.random();
+const truncate = (s, n) => s.length > n ? s.slice(0, n) + "…" : s;
+
+const statusColors = {
+  approved: { bg: "var(--accent-light)", color: "var(--accent)", label: "Approved" },
+  pending:  { bg: "var(--gold-light)",   color: "var(--gold)",   label: "Pending" },
+  rejected: { bg: "var(--danger-light)", color: "var(--danger)", label: "Rejected" },
+};
+
+// ─── UI PRIMITIVES ─────────────────────────────────────────────
+const Badge = ({ status, custom }) => {
+  const s = custom || statusColors[status] || statusColors.pending;
+  return (
+    <span style={{ display:"inline-flex", alignItems:"center", padding:"3px 10px", borderRadius:20, fontSize:11, fontWeight:700, background:s.bg, color:s.color, letterSpacing:"0.04em", textTransform:"uppercase" }}>
+      {s.label || status}
+    </span>
+  );
+};
+
+const Btn = ({ children, onClick, variant="primary", size="md", style={}, disabled, type }) => {
+  const v = {
+    primary:   { background:"var(--accent)", color:"#fff", border:"none" },
+    secondary: { background:"transparent", color:"var(--ink2)", border:"1.5px solid var(--border2)" },
+    danger:    { background:"var(--danger-light)", color:"var(--danger)", border:"1.5px solid #f5c6c6" },
+    ghost:     { background:"transparent", color:"var(--ink3)", border:"none" },
+    accent2:   { background:"var(--accent2)", color:"#fff", border:"none" },
+    gold:      { background:"var(--gold)", color:"#fff", border:"none" },
+  };
+  const sz = {
+    sm: { padding:"5px 12px", fontSize:12, borderRadius:8 },
+    md: { padding:"9px 18px", fontSize:13, borderRadius:10 },
+    lg: { padding:"12px 26px", fontSize:14, borderRadius:12 },
+  };
+  return (
+    <button type={type} onClick={onClick} disabled={disabled} style={{
+      fontFamily:"var(--font-body)", fontWeight:600, cursor: disabled?"not-allowed":"pointer",
+      opacity: disabled?0.5:1, transition:"var(--transition)", letterSpacing:"0.01em",
+      ...v[variant], ...sz[size], ...style
+    }}
+      onMouseOver={e => !disabled && (e.currentTarget.style.filter="brightness(0.93)")}
+      onMouseOut={e => e.currentTarget.style.filter="none"}
+    >{children}</button>
+  );
+};
+
+const Card = ({ children, style={}, hover }) => {
+  const [h, setH] = useState(false);
+  return (
+    <div style={{
+      background:"var(--surface)", border:"1.5px solid var(--border)",
+      borderRadius:"var(--radius-lg)", padding:20,
+      boxShadow: h && hover ? "var(--shadow)" : "var(--shadow-sm)",
+      transform: h && hover ? "translateY(-2px)" : "none",
+      transition:"var(--transition)", ...style
+    }}
+      onMouseOver={() => setH(true)} onMouseOut={() => setH(false)}
+    >{children}</div>
+  );
+};
+
+const Modal = ({ title, onClose, children, width=540 }) => (
+  <div style={{ position:"fixed", inset:0, background:"rgba(26,23,20,0.45)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000, padding:16, backdropFilter:"blur(6px)" }}
+    onClick={e => e.target===e.currentTarget && onClose()}>
+    <div style={{ background:"var(--surface)", borderRadius:"var(--radius-xl)", width:"100%", maxWidth:width, maxHeight:"92vh", overflow:"auto", animation:"scaleIn 0.22s ease", boxShadow:"var(--shadow-lg)" }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"18px 24px", borderBottom:"1.5px solid var(--border)" }}>
+        <span style={{ fontFamily:"var(--font-display)", fontSize:20 }}>{title}</span>
+        <button onClick={onClose} style={{ background:"var(--bg2)", border:"none", color:"var(--ink2)", borderRadius:8, width:30, height:30, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>×</button>
+      </div>
+      <div style={{ padding:24 }}>{children}</div>
+    </div>
+  </div>
+);
+
+const EmptyState = ({ icon, title, sub }) => (
+  <div style={{ textAlign:"center", padding:"56px 20px", color:"var(--ink3)" }}>
+    <div style={{ fontSize:44, marginBottom:12 }}>{icon}</div>
+    <div style={{ fontFamily:"var(--font-display)", fontSize:20, color:"var(--ink2)", marginBottom:6 }}>{title}</div>
+    {sub && <div style={{ fontSize:13 }}>{sub}</div>}
+  </div>
+);
+
+const StatCard = ({ icon, label, value, sub, color }) => (
+  <Card>
+    <div style={{ display:"flex", alignItems:"flex-start", gap:14 }}>
+      <div style={{ width:44, height:44, borderRadius:12, background: color+"22", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0 }}>{icon}</div>
+      <div>
+        <div style={{ fontSize:12, color:"var(--ink3)", fontWeight:500, marginBottom:2 }}>{label}</div>
+        <div style={{ fontFamily:"var(--font-display)", fontSize:26, lineHeight:1, color: color||"var(--ink)" }}>{value}</div>
+        {sub && <div style={{ fontSize:11, color:"var(--ink3)", marginTop:4 }}>{sub}</div>}
+      </div>
+    </div>
+  </Card>
+);
+
+// ─── DOCUMENT CARD ─────────────────────────────────────────────
+const DocCard = ({ doc, onView, onBuy, purchased, currentUser }) => {
+  const isMine = currentUser?.id === doc.sellerId;
+  const alreadyBought = purchased?.includes(doc.id);
+  return (
+    <Card hover style={{ cursor:"pointer", display:"flex", flexDirection:"column", gap:0 }} >
+      {/* Header strip */}
+      <div style={{ height:6, borderRadius:"12px 12px 0 0", margin:"-20px -20px 16px -20px", background: doc.fileType==="PDF" ? "linear-gradient(90deg,var(--accent2),#f4a261)" : "linear-gradient(90deg,var(--info),#74b3ce)" }} />
+      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:8, marginBottom:8 }}>
+        <div>
+          <div style={{ fontSize:11, color:"var(--ink3)", fontWeight:500, marginBottom:3, display:"flex", gap:8, alignItems:"center" }}>
+            <span style={{ background:"var(--bg2)", padding:"2px 8px", borderRadius:20, fontSize:10, fontWeight:700, letterSpacing:"0.05em" }}>{doc.fileType}</span>
+            <span>📥 {doc.downloads}</span>
+          </div>
+          <div style={{ fontFamily:"var(--font-display)", fontSize:16, lineHeight:1.3, marginBottom:4 }}>{truncate(doc.title, 52)}</div>
+        </div>
+        <div style={{ fontFamily:"var(--font-display)", fontSize:20, color:"var(--accent)", whiteSpace:"nowrap" }}>{fmt(doc.price)}</div>
+      </div>
+      <p style={{ fontSize:12, color:"var(--ink2)", lineHeight:1.5, marginBottom:10, flex:1 }}>{truncate(doc.description, 110)}</p>
+      <div style={{ fontSize:11, color:"var(--ink3)", marginBottom:12 }}>
+        <span>📚 {doc.course}</span><br />
+        <span>🏛 {doc.institution}</span>
+      </div>
+      <div style={{ display:"flex", gap:8, marginTop:"auto" }}>
+        <Btn variant="secondary" size="sm" onClick={() => onView(doc)} style={{ flex:1 }}>Preview</Btn>
+        {!isMine && (
+          alreadyBought
+            ? <Btn variant="ghost" size="sm" style={{ flex:1, color:"var(--accent)", background:"var(--accent-light)" }} disabled>✓ Owned</Btn>
+            : <Btn variant="accent2" size="sm" onClick={() => onBuy(doc)} style={{ flex:1 }}>Buy {fmt(doc.price)}</Btn>
+        )}
+        {isMine && <Btn variant="ghost" size="sm" style={{ flex:1, color:"var(--ink3)" }} disabled>Your Upload</Btn>}
+      </div>
+    </Card>
+  );
+};
+
+// ─── LOGIN / REGISTER ──────────────────────────────────────────
+const AuthPage = ({ onLogin, users, onRegister }) => {
+  const [tab, setTab] = useState("login");
+  const [form, setForm] = useState({ name:"", email:"", password:"", institution:"", course:"" });
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
+  const s = (k,v) => { setForm(p=>({...p,[k]:v})); setErr(""); };
+
+  const handleLogin = () => {
+    setLoading(true);
+    setTimeout(() => {
+      const u = users.find(u => u.email===form.email && u.password===form.password);
+      if (u) onLogin(u);
+      else { setErr("Invalid email or password."); setLoading(false); }
+    }, 500);
+  };
+
+  const handleRegister = () => {
+    if (!form.name || !form.email || !form.password || !form.institution) { setErr("Please fill all required fields."); return; }
+    if (users.find(u=>u.email===form.email)) { setErr("Email already registered."); return; }
+    setLoading(true);
+    setTimeout(() => {
+      const newUser = { id: uid(), ...form, role:"student", joined: new Date().toISOString().split("T")[0], earnings:0, sales:0 };
+      onRegister(newUser);
+      onLogin(newUser);
+    }, 500);
+  };
+
+  return (
+    <div style={{ minHeight:"100vh", display:"flex", background:"var(--bg)", backgroundImage:"radial-gradient(ellipse at 70% 20%, #d8f3dc66 0%, transparent 55%), radial-gradient(ellipse at 10% 80%, #fde8e166 0%, transparent 55%)" }}>
+      {/* Left panel */}
+      <div className="hide-mobile" style={{ width:480, background:"var(--accent)", display:"flex", flexDirection:"column", justifyContent:"center", padding:"60px 50px", position:"relative", overflow:"hidden" }}>
+        <div style={{ position:"absolute", top:-80, right:-80, width:300, height:300, borderRadius:"50%", background:"rgba(255,255,255,0.06)" }} />
+        <div style={{ position:"absolute", bottom:-60, left:-40, width:220, height:220, borderRadius:"50%", background:"rgba(255,255,255,0.04)" }} />
+        <div style={{ fontFamily:"var(--font-display)", fontSize:48, color:"#fff", lineHeight:1.1, marginBottom:20 }}>
+          Share knowledge.<br /><em>Earn from it.</em>
+        </div>
+        <p style={{ color:"rgba(255,255,255,0.75)", fontSize:15, lineHeight:1.7, marginBottom:40 }}>
+          The student-to-student marketplace for study notes, guides, and course materials. Upload once, earn forever.
+        </p>
+        <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+          {["📄 Sell your notes and study guides", "💸 Earn up to 80% per sale", "🔒 Secure payments via Stripe", "🎓 Access materials from top institutions"].map(f => (
+            <div key={f} style={{ color:"rgba(255,255,255,0.85)", fontSize:14, display:"flex", gap:10 }}>{f}</div>
+          ))}
+        </div>
+      </div>
+
+      {/* Right panel */}
+      <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
+        <div style={{ width:"100%", maxWidth:420, animation:"fadeUp 0.4s ease" }}>
+          <div style={{ marginBottom:32, textAlign:"center" }}>
+            <div style={{ fontFamily:"var(--font-display)", fontSize:32, color:"var(--ink)", marginBottom:4 }}>Notes<span style={{ color:"var(--accent)" }}>Hub</span></div>
+            <div style={{ color:"var(--ink3)", fontSize:13 }}>Student study material marketplace</div>
+          </div>
+
+          {/* Tabs */}
+          <div style={{ display:"flex", background:"var(--bg2)", borderRadius:12, padding:4, marginBottom:24 }}>
+            {["login","register"].map(t => (
+              <button key={t} onClick={() => { setTab(t); setErr(""); }} style={{
+                flex:1, padding:"8px", borderRadius:9, fontFamily:"var(--font-body)", fontSize:13, fontWeight:600,
+                background: tab===t ? "var(--surface)" : "transparent",
+                color: tab===t ? "var(--ink)" : "var(--ink3)",
+                boxShadow: tab===t ? "var(--shadow-sm)" : "none", border:"none", cursor:"pointer", textTransform:"capitalize", transition:"var(--transition)"
+              }}>{t === "login" ? "Sign In" : "Create Account"}</button>
+            ))}
+          </div>
+
+          <Card style={{ padding:24 }}>
+            {err && <div style={{ background:"var(--danger-light)", border:"1.5px solid #f5c6c6", borderRadius:8, padding:"10px 14px", color:"var(--danger)", fontSize:13, marginBottom:16 }}>{err}</div>}
+
+            {tab==="register" && <div className="field"><label>Full Name *</label><input value={form.name} onChange={e=>s("name",e.target.value)} placeholder="Your full name" /></div>}
+            <div className="field"><label>Email Address *</label><input type="email" value={form.email} onChange={e=>s("email",e.target.value)} placeholder="you@university.edu" /></div>
+            <div className="field"><label>Password *</label><input type="password" value={form.password} onChange={e=>s("password",e.target.value)} placeholder="••••••••" onKeyDown={e=>e.key==="Enter"&&(tab==="login"?handleLogin():handleRegister())} /></div>
+            {tab==="register" && <>
+              <div className="field"><label>Institution *</label><input value={form.institution} onChange={e=>s("institution",e.target.value)} placeholder="e.g. University of Cape Town" /></div>
+              <div className="field"><label>Course / Programme</label><input value={form.course} onChange={e=>s("course",e.target.value)} placeholder="e.g. BSc Computer Science" /></div>
+            </>}
+
+            <Btn onClick={tab==="login"?handleLogin:handleRegister} size="lg" disabled={loading} style={{ width:"100%", marginTop:4 }}>
+              {loading ? "Please wait…" : tab==="login" ? "Sign In →" : "Create Account →"}
+            </Btn>
+
+            {tab==="login" && <div style={{ marginTop:14, padding:"10px 12px", background:"var(--bg2)", borderRadius:8, fontSize:12, color:"var(--ink3)", lineHeight:1.7 }}>
+              <strong style={{ color:"var(--ink2)" }}>Demo accounts:</strong><br />
+              Student: amara@student.edu / pass123<br />
+              Admin: admin@noteshub.com / admin123
+            </div>}
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── TOP NAV ───────────────────────────────────────────────────
+const TopNav = ({ user, page, onNav, onLogout }) => {
+  const isAdmin = user.role === "admin";
+  const navItems = isAdmin
+    ? [{ id:"admin", label:"Admin Panel" }]
+    : [{ id:"marketplace", label:"Marketplace" }, { id:"dashboard", label:"My Dashboard" }];
+
+  return (
+    <nav style={{ background:"var(--surface)", borderBottom:"1.5px solid var(--border)", position:"sticky", top:0, zIndex:100, boxShadow:"var(--shadow-sm)" }}>
+      <div style={{ maxWidth:1200, margin:"0 auto", padding:"0 24px", height:58, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+        <div style={{ fontFamily:"var(--font-display)", fontSize:24, cursor:"pointer" }} onClick={() => onNav(isAdmin?"admin":"marketplace")}>
+          Notes<span style={{ color:"var(--accent)" }}>Hub</span>
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+          {navItems.map(n => (
+            <button key={n.id} onClick={() => onNav(n.id)} style={{
+              padding:"7px 16px", borderRadius:8, border:"none", fontFamily:"var(--font-body)", fontSize:13, fontWeight:500,
+              background: page===n.id ? "var(--accent-light)" : "transparent",
+              color: page===n.id ? "var(--accent)" : "var(--ink2)",
+              cursor:"pointer", transition:"var(--transition)"
+            }}>{n.label}</button>
+          ))}
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ textAlign:"right", display:"flex", flexDirection:"column" }}>
+            <span style={{ fontSize:13, fontWeight:600 }}>{user.name}</span>
+            <span style={{ fontSize:11, color:"var(--ink3)" }}>{user.role==="admin"?"Administrator":user.institution}</span>
+          </div>
+          <div style={{ width:34, height:34, borderRadius:"50%", background:"var(--accent)", color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"var(--font-display)", fontSize:14 }}>
+            {user.name.split(" ").map(n=>n[0]).join("").slice(0,2)}
+          </div>
+          <Btn variant="secondary" size="sm" onClick={onLogout}>Sign out</Btn>
+        </div>
+      </div>
+    </nav>
+  );
+};
+
+// ─── MARKETPLACE ───────────────────────────────────────────────
+const Marketplace = ({ docs, user, purchases, onBuy }) => {
+  const [search, setSearch] = useState("");
+  const [filterCourse, setFilterCourse] = useState("");
+  const [filterInst, setFilterInst] = useState("");
+  const [viewDoc, setViewDoc] = useState(null);
+  const [buyDoc, setBuyDoc] = useState(null);
+  const [paySuccess, setPaySuccess] = useState(false);
+
+  const approved = docs.filter(d => d.status === "approved");
+  const purchasedIds = purchases.filter(p=>p.buyerId===user.id).map(p=>p.documentId);
+  const courses = [...new Set(approved.map(d=>d.course))];
+  const institutions = [...new Set(approved.map(d=>d.institution))];
+
+  const filtered = approved.filter(d =>
+    (!search || d.title.toLowerCase().includes(search.toLowerCase()) || d.course.toLowerCase().includes(search.toLowerCase()) || d.description.toLowerCase().includes(search.toLowerCase())) &&
+    (!filterCourse || d.course===filterCourse) &&
+    (!filterInst || d.institution===filterInst)
+  );
+
+  const handleBuy = () => {
+    onBuy(buyDoc);
+    setPaySuccess(true);
+    setTimeout(() => { setPaySuccess(false); setBuyDoc(null); }, 2200);
+  };
+
+  return (
+    <div style={{ maxWidth:1200, margin:"0 auto", padding:"32px 24px" }}>
+      {/* Hero search */}
+      <div style={{ textAlign:"center", marginBottom:36, animation:"fadeUp 0.3s ease" }}>
+        <h1 style={{ fontFamily:"var(--font-display)", fontSize:42, lineHeight:1.1, marginBottom:10 }}>
+          Find your perfect<br /><span style={{ color:"var(--accent)" }}>study notes</span>
+        </h1>
+        <p style={{ color:"var(--ink2)", fontSize:15, marginBottom:24 }}>Browse materials uploaded by students at top institutions</p>
+        <div style={{ maxWidth:600, margin:"0 auto", position:"relative" }}>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by topic, course, or keyword…" style={{ paddingLeft:44, fontSize:15, height:50, borderRadius:14 }} />
+          <span style={{ position:"absolute", left:16, top:"50%", transform:"translateY(-50%)", color:"var(--ink3)", fontSize:18 }}>🔍</span>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div style={{ display:"flex", gap:10, marginBottom:24, flexWrap:"wrap" }}>
+        <select value={filterCourse} onChange={e=>setFilterCourse(e.target.value)} style={{ width:"auto", flex:1, minWidth:180, maxWidth:300 }}>
+          <option value="">All Courses</option>
+          {courses.map(c=><option key={c}>{c}</option>)}
+        </select>
+        <select value={filterInst} onChange={e=>setFilterInst(e.target.value)} style={{ width:"auto", flex:1, minWidth:180, maxWidth:300 }}>
+          <option value="">All Institutions</option>
+          {institutions.map(i=><option key={i}>{i}</option>)}
+        </select>
+        {(search||filterCourse||filterInst) && <Btn variant="ghost" onClick={()=>{setSearch("");setFilterCourse("");setFilterInst("");}}>Clear filters ×</Btn>}
+        <div style={{ marginLeft:"auto", color:"var(--ink3)", fontSize:13, display:"flex", alignItems:"center" }}>{filtered.length} result{filtered.length!==1?"s":""}</div>
+      </div>
+
+      {filtered.length === 0
+        ? <EmptyState icon="📭" title="No documents found" sub="Try different keywords or filters" />
+        : <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(300px, 1fr))", gap:18 }}>
+            {filtered.map((doc,i) => (
+              <div key={doc.id} style={{ animation:`fadeUp 0.3s ease ${i*0.05}s both` }}>
+                <DocCard doc={doc} onView={setViewDoc} onBuy={setBuyDoc} purchased={purchasedIds} currentUser={user} />
+              </div>
+            ))}
+          </div>
+      }
+
+      {/* Preview Modal */}
+      {viewDoc && <Modal title={viewDoc.title} onClose={()=>setViewDoc(null)} width={600}>
+        <div style={{ display:"flex", gap:8, marginBottom:12, flexWrap:"wrap" }}>
+          <Badge status={viewDoc.status} />
+          <Badge custom={{ bg:"var(--info-light)", color:"var(--info)", label:viewDoc.fileType }} />
+          <Badge custom={{ bg:"var(--bg2)", color:"var(--ink2)", label:`${viewDoc.previewPages} preview pages` }} />
+        </div>
+        <p style={{ color:"var(--ink2)", marginBottom:16, lineHeight:1.7 }}>{viewDoc.description}</p>
+        <div style={{ background:"var(--bg2)", borderRadius:12, padding:16, marginBottom:16, fontSize:13, color:"var(--ink2)", display:"flex", flexDirection:"column", gap:6 }}>
+          <span>📚 <strong>Course:</strong> {viewDoc.course}</span>
+          <span>🏛 <strong>Institution:</strong> {viewDoc.institution}</span>
+          <span>📅 <strong>Uploaded:</strong> {fmtDate(viewDoc.uploadDate)}</span>
+          <span>📥 <strong>Downloads:</strong> {viewDoc.downloads}</span>
+        </div>
+        {/* Fake preview pages */}
+        <div style={{ marginBottom:16 }}>
+          <div style={{ fontSize:12, fontWeight:600, color:"var(--ink3)", marginBottom:8, textTransform:"uppercase", letterSpacing:"0.05em" }}>Document Preview ({viewDoc.previewPages} pages)</div>
+          {Array.from({length:viewDoc.previewPages}).map((_,i)=>(
+            <div key={i} style={{ background:"var(--bg)", border:"1.5px solid var(--border)", borderRadius:8, padding:16, marginBottom:8, minHeight:80, position:"relative", overflow:"hidden" }}>
+              <div style={{ fontSize:10, color:"var(--ink3)", marginBottom:6 }}>Page {i+1}</div>
+              {[85,72,90,65,78].map((w,j)=>(
+                <div key={j} style={{ height:8, background:"var(--border)", borderRadius:4, marginBottom:6, width:`${w}%`, opacity:0.7 }} />
+              ))}
+              {i===viewDoc.previewPages-1 && <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom, transparent 30%, var(--bg))", display:"flex", alignItems:"flex-end", justifyContent:"center", paddingBottom:12 }}>
+                <span style={{ fontSize:12, color:"var(--ink3)", fontWeight:500 }}>🔒 Purchase to view full document</span>
+              </div>}
+            </div>
+          ))}
+        </div>
+        <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+          <div style={{ fontFamily:"var(--font-display)", fontSize:28, color:"var(--accent)" }}>{fmt(viewDoc.price)}</div>
+          {user.id!==viewDoc.sellerId && !purchases.find(p=>p.buyerId===user.id&&p.documentId===viewDoc.id)
+            ? <Btn variant="accent2" size="lg" onClick={()=>{setViewDoc(null);setBuyDoc(viewDoc);}}>Buy & Download</Btn>
+            : <Btn variant="ghost" disabled style={{ color:"var(--accent)" }}>✓ Already owned</Btn>
+          }
+        </div>
+      </Modal>}
+
+      {/* Payment Modal */}
+      {buyDoc && !paySuccess && <Modal title="Complete Purchase" onClose={()=>setBuyDoc(null)} width={460}>
+        <div style={{ background:"var(--bg2)", borderRadius:12, padding:16, marginBottom:20 }}>
+          <div style={{ fontWeight:600, marginBottom:4 }}>{buyDoc.title}</div>
+          <div style={{ fontSize:12, color:"var(--ink3)" }}>{buyDoc.course} · {buyDoc.institution}</div>
+          <div style={{ fontFamily:"var(--font-display)", fontSize:28, color:"var(--accent)", marginTop:8 }}>{fmt(buyDoc.price)}</div>
+        </div>
+        <div style={{ marginBottom:20 }}>
+          <div className="field"><label>Card Number</label><input placeholder="4242 4242 4242 4242" defaultValue="4242 4242 4242 4242" /></div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+            <div className="field"><label>Expiry</label><input placeholder="MM/YY" defaultValue="12/28" /></div>
+            <div className="field"><label>CVC</label><input placeholder="123" defaultValue="123" /></div>
+          </div>
+        </div>
+        <div style={{ background:"var(--accent-light)", borderRadius:10, padding:"10px 14px", fontSize:12, color:"var(--accent)", marginBottom:16, display:"flex", gap:8 }}>
+          🔒 Payments secured by Stripe. Your card info is never stored.
+        </div>
+        <Btn onClick={handleBuy} size="lg" style={{ width:"100%" }}>Pay {fmt(buyDoc.price)} Securely</Btn>
+      </Modal>}
+
+      {paySuccess && <Modal title="" onClose={()=>{}} width={380}>
+        <div style={{ textAlign:"center", padding:"20px 0" }}>
+          <div style={{ fontSize:56, marginBottom:16 }}>🎉</div>
+          <div style={{ fontFamily:"var(--font-display)", fontSize:24, marginBottom:8 }}>Payment Successful!</div>
+          <div style={{ color:"var(--ink2)", fontSize:14 }}>Your document is now available for download.</div>
+        </div>
+      </Modal>}
+    </div>
+  );
+};
+
+// ─── SELLER DASHBOARD ──────────────────────────────────────────
+const SellerDashboard = ({ user, docs, purchases, payoutRequests, onUpload, onRequestPayout }) => {
+  const [tab, setTab] = useState("overview");
+  const [uploadModal, setUploadModal] = useState(false);
+  const [payoutModal, setPayoutModal] = useState(false);
+
+  const myDocs = docs.filter(d => d.sellerId === user.id);
+  const mySales = purchases.filter(p => myDocs.find(d=>d.id===p.documentId));
+  const grossEarnings = mySales.reduce((s,p)=>s+p.amount,0);
+  const netEarnings = grossEarnings * (1 - COMMISSION);
+  const myPurchases = purchases.filter(p=>p.buyerId===user.id);
+
+  const TABS = ["overview","my uploads","purchases","payouts"];
+
+  return (
+    <div style={{ maxWidth:1100, margin:"0 auto", padding:"32px 24px" }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:28, flexWrap:"wrap", gap:12 }}>
+        <div>
+          <h1 style={{ fontFamily:"var(--font-display)", fontSize:34 }}>My Dashboard</h1>
+          <p style={{ color:"var(--ink2)", fontSize:13 }}>Welcome back, {user.name.split(" ")[0]}</p>
+        </div>
+        <Btn variant="accent2" onClick={() => setUploadModal(true)}>+ Upload Notes</Btn>
+      </div>
+
+      {/* Stats */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:14, marginBottom:28 }}>
+        <StatCard icon="📄" label="Total Uploads" value={myDocs.length} sub={`${myDocs.filter(d=>d.status==="approved").length} approved`} color="var(--info)" />
+        <StatCard icon="💰" label="Net Earnings" value={fmt(netEarnings)} sub={`${COMMISSION*100}% platform fee`} color="var(--accent)" />
+        <StatCard icon="📥" label="Total Sales" value={mySales.length} sub="completed purchases" color="var(--accent2)" />
+        <StatCard icon="🛒" label="My Purchases" value={myPurchases.length} sub="notes I've bought" color="var(--gold)" />
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display:"flex", gap:4, borderBottom:"2px solid var(--border)", marginBottom:24 }}>
+        {TABS.map(t => (
+          <button key={t} onClick={()=>setTab(t)} style={{
+            padding:"9px 18px", background:"none", border:"none", borderBottom: tab===t?"2px solid var(--accent)":"2px solid transparent",
+            marginBottom:-2, color: tab===t?"var(--accent)":"var(--ink3)", fontFamily:"var(--font-body)", fontSize:13, fontWeight:600,
+            cursor:"pointer", textTransform:"capitalize", transition:"var(--transition)"
+          }}>{t}</button>
+        ))}
+      </div>
+
+      {/* Overview */}
+      {tab==="overview" && <div style={{ animation:"fadeIn 0.2s ease" }}>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:18 }}>
+          <Card>
+            <div style={{ fontFamily:"var(--font-display)", fontSize:18, marginBottom:14 }}>Upload Status</div>
+            {["approved","pending","rejected"].map(s => {
+              const count = myDocs.filter(d=>d.status===s).length;
+              const sc = statusColors[s];
+              return <div key={s} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:"1px solid var(--border)" }}>
+                <Badge status={s} />
+                <span style={{ fontFamily:"var(--font-display)", fontSize:22 }}>{count}</span>
+              </div>;
+            })}
+          </Card>
+          <Card>
+            <div style={{ fontFamily:"var(--font-display)", fontSize:18, marginBottom:14 }}>Earnings Breakdown</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+              <div style={{ display:"flex", justifyContent:"space-between" }}><span style={{ color:"var(--ink2)", fontSize:13 }}>Gross Sales</span><strong>{fmt(grossEarnings)}</strong></div>
+              <div style={{ display:"flex", justifyContent:"space-between" }}><span style={{ color:"var(--ink2)", fontSize:13 }}>Platform Fee (20%)</span><span style={{ color:"var(--danger)" }}>-{fmt(grossEarnings*COMMISSION)}</span></div>
+              <div style={{ height:1, background:"var(--border)" }} />
+              <div style={{ display:"flex", justifyContent:"space-between" }}><span style={{ fontWeight:600 }}>Net Earnings</span><span style={{ fontFamily:"var(--font-display)", fontSize:22, color:"var(--accent)" }}>{fmt(netEarnings)}</span></div>
+              {netEarnings > 0 && <Btn variant="gold" onClick={()=>setPayoutModal(true)}>Request Payout</Btn>}
+            </div>
+          </Card>
+        </div>
+      </div>}
+
+      {/* My Uploads */}
+      {tab==="my uploads" && <div style={{ animation:"fadeIn 0.2s ease" }}>
+        {myDocs.length===0 ? <EmptyState icon="📝" title="No uploads yet" sub="Click 'Upload Notes' to get started" /> :
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            {myDocs.map(d => {
+              const docSales = mySales.filter(p=>p.documentId===d.id);
+              return <Card key={d.id} style={{ padding:"14px 18px" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:14, flexWrap:"wrap" }}>
+                  <div style={{ flex:1, minWidth:200 }}>
+                    <div style={{ fontWeight:600, marginBottom:3 }}>{d.title}</div>
+                    <div style={{ fontSize:12, color:"var(--ink3)" }}>{d.course} · {d.fileType} · Uploaded {fmtDate(d.uploadDate)}</div>
+                  </div>
+                  <Badge status={d.status} />
+                  <div style={{ textAlign:"right" }}>
+                    <div style={{ fontFamily:"var(--font-display)", fontSize:18, color:"var(--accent)" }}>{fmt(d.price)}</div>
+                    <div style={{ fontSize:11, color:"var(--ink3)" }}>{docSales.length} sales · {d.downloads} downloads</div>
+                  </div>
+                </div>
+              </Card>;
+            })}
+          </div>
+        }
+      </div>}
+
+      {/* My Purchases */}
+      {tab==="purchases" && <div style={{ animation:"fadeIn 0.2s ease" }}>
+        {myPurchases.length===0 ? <EmptyState icon="🛒" title="No purchases yet" sub="Head to the marketplace to find study materials" /> :
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            {myPurchases.map(p => {
+              const doc = docs.find(d=>d.id===p.documentId);
+              return <Card key={p.id} style={{ padding:"14px 18px" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:14, flexWrap:"wrap" }}>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontWeight:600, marginBottom:3 }}>{doc?.title || "Deleted document"}</div>
+                    <div style={{ fontSize:12, color:"var(--ink3)" }}>{doc?.course} · Purchased {fmtDate(p.date)}</div>
+                  </div>
+                  <Btn variant="secondary" size="sm">⬇ Download</Btn>
+                  <div style={{ fontFamily:"var(--font-display)", fontSize:18, color:"var(--ink)" }}>{fmt(p.amount)}</div>
+                </div>
+              </Card>;
+            })}
+          </div>
+        }
+      </div>}
+
+      {/* Payouts */}
+      {tab==="payouts" && <div style={{ animation:"fadeIn 0.2s ease" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+          <div style={{ color:"var(--ink2)", fontSize:13 }}>Available balance: <strong style={{ color:"var(--accent)" }}>{fmt(netEarnings)}</strong></div>
+          {netEarnings > 0 && <Btn variant="gold" size="sm" onClick={()=>setPayoutModal(true)}>Request Payout</Btn>}
+        </div>
+        {payoutRequests.filter(r=>r.userId===user.id).length===0
+          ? <EmptyState icon="💸" title="No payout requests" sub="Request a payout when you have earnings" />
+          : payoutRequests.filter(r=>r.userId===user.id).map(r=>(
+            <Card key={r.id} style={{ padding:"14px 18px", marginBottom:8 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <div><div style={{ fontWeight:600 }}>{fmt(r.amount)} payout</div><div style={{ fontSize:12, color:"var(--ink3)" }}>Requested {fmtDate(r.date)}</div></div>
+                <Badge status={r.status} />
+              </div>
+            </Card>
+          ))
+        }
+      </div>}
+
+      {/* Upload Modal */}
+      {uploadModal && <UploadModal onClose={()=>setUploadModal(false)} onUpload={d=>{onUpload({...d,sellerId:user.id});setUploadModal(false);}} />}
+
+      {/* Payout Modal */}
+      {payoutModal && <Modal title="Request Payout" onClose={()=>setPayoutModal(false)} width={420}>
+        <div style={{ background:"var(--bg2)", borderRadius:12, padding:16, marginBottom:20 }}>
+          <div style={{ fontSize:13, color:"var(--ink2)", marginBottom:4 }}>Available for withdrawal</div>
+          <div style={{ fontFamily:"var(--font-display)", fontSize:34, color:"var(--accent)" }}>{fmt(netEarnings)}</div>
+        </div>
+        <div className="field"><label>Bank / Mobile Money Number</label><input placeholder="Account number or M-Pesa number" /></div>
+        <div className="field"><label>Account Name</label><input defaultValue={user.name} /></div>
+        <div style={{ background:"var(--gold-light)", borderRadius:10, padding:"10px 14px", fontSize:12, color:"var(--gold)", marginBottom:16 }}>
+          💡 Payouts are processed within 2–5 business days.
+        </div>
+        <Btn onClick={()=>{onRequestPayout({id:uid(),userId:user.id,amount:netEarnings,date:new Date().toISOString().split("T")[0],status:"pending"});setPayoutModal(false);}} size="lg" style={{ width:"100%" }}>Submit Payout Request</Btn>
+      </Modal>}
+    </div>
+  );
+};
+
+// ─── UPLOAD MODAL ──────────────────────────────────────────────
+const UploadModal = ({ onClose, onUpload }) => {
+  const [f, setF] = useState({ title:"", description:"", course:"", institution:"", price:"", fileType:"PDF", previewPages:2 });
+  const s = (k,v) => setF(p=>({...p,[k]:v}));
+  const [uploaded, setUploaded] = useState(false);
+
+  return (
+    <Modal title="Upload Study Material" onClose={onClose} width={560}>
+      {uploaded ? (
+        <div style={{ textAlign:"center", padding:"24px 0" }}>
+          <div style={{ fontSize:52, marginBottom:12 }}>📤</div>
+          <div style={{ fontFamily:"var(--font-display)", fontSize:22, marginBottom:8 }}>Uploaded for Review</div>
+          <p style={{ color:"var(--ink2)", fontSize:13, marginBottom:20 }}>Your document has been submitted and will be reviewed by our admin team. You'll be notified once it's approved.</p>
+          <Btn onClick={onClose}>Done</Btn>
+        </div>
+      ) : <>
+        <div className="field"><label>Title *</label><input value={f.title} onChange={e=>s("title",e.target.value)} placeholder="e.g. Complete Calculus II Notes" /></div>
+        <div className="field"><label>Description *</label><textarea value={f.description} onChange={e=>s("description",e.target.value)} rows={3} placeholder="What's covered in this document?" /></div>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+          <div className="field"><label>Course Name *</label><input value={f.course} onChange={e=>s("course",e.target.value)} placeholder="e.g. Organic Chemistry" /></div>
+          <div className="field"><label>Institution *</label><input value={f.institution} onChange={e=>s("institution",e.target.value)} placeholder="e.g. MIT" /></div>
+          <div className="field"><label>Price ($) *</label><input type="number" step="0.01" value={f.price} onChange={e=>s("price",e.target.value)} placeholder="2.99" /></div>
+          <div className="field"><label>File Type</label><select value={f.fileType} onChange={e=>s("fileType",e.target.value)}><option>PDF</option><option>DOCX</option></select></div>
+        </div>
+        <div className="field">
+          <label>Upload File</label>
+          <div style={{ border:"2px dashed var(--border2)", borderRadius:10, padding:"24px", textAlign:"center", color:"var(--ink3)", fontSize:13, cursor:"pointer", background:"var(--bg2)" }}>
+            📎 Click to upload PDF or DOCX<br /><span style={{ fontSize:11 }}>Max 50MB</span>
+          </div>
+        </div>
+        <div style={{ background:"var(--info-light)", borderRadius:10, padding:"10px 14px", fontSize:12, color:"var(--info)", marginBottom:16 }}>
+          ℹ️ All uploads are reviewed within 24 hours. You'll earn 80% of each sale.
+        </div>
+        <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
+          <Btn variant="secondary" onClick={onClose}>Cancel</Btn>
+          <Btn onClick={() => { if(f.title&&f.description&&f.course&&f.institution&&f.price){ onUpload({...f,price:Number(f.price),previewPages:Number(f.previewPages),status:"pending",downloads:0,uploadDate:new Date().toISOString().split("T")[0],tags:[],id:uid()}); setUploaded(true); } }}>Submit for Review</Btn>
+        </div>
+      </>}
+    </Modal>
+  );
+};
+
+// ─── ADMIN PANEL ───────────────────────────────────────────────
+const AdminPanel = ({ docs, users, purchases, payoutRequests, onApprove, onReject, onRemove, onProcessPayout }) => {
+  const [tab, setTab] = useState("documents");
+  const TABS = ["documents","users","revenue","payouts"];
+
+  const totalRevenue = purchases.reduce((s,p)=>s+p.amount,0);
+  const platformRevenue = purchases.reduce((s,p)=>s+p.commission,0);
+  const students = users.filter(u=>u.role==="student");
+
+  return (
+    <div style={{ maxWidth:1200, margin:"0 auto", padding:"32px 24px" }}>
+      <div style={{ marginBottom:28 }}>
+        <h1 style={{ fontFamily:"var(--font-display)", fontSize:34 }}>Admin Panel</h1>
+        <p style={{ color:"var(--ink2)", fontSize:13 }}>Manage the NotesHub marketplace</p>
+      </div>
+
+      {/* Stats */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))", gap:14, marginBottom:28 }}>
+        <StatCard icon="📄" label="Total Documents" value={docs.length} sub={`${docs.filter(d=>d.status==="pending").length} pending review`} color="var(--info)" />
+        <StatCard icon="👥" label="Students" value={students.length} color="var(--accent)" />
+        <StatCard icon="💰" label="Gross Revenue" value={fmt(totalRevenue)} sub="all-time" color="var(--accent2)" />
+        <StatCard icon="🏦" label="Platform Revenue" value={fmt(platformRevenue)} sub="20% commission" color="var(--gold)" />
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display:"flex", gap:4, borderBottom:"2px solid var(--border)", marginBottom:24 }}>
+        {TABS.map(t=>(
+          <button key={t} onClick={()=>setTab(t)} style={{
+            padding:"9px 18px", background:"none", border:"none", borderBottom:tab===t?"2px solid var(--accent)":"2px solid transparent",
+            marginBottom:-2, color:tab===t?"var(--accent)":"var(--ink3)", fontFamily:"var(--font-body)", fontSize:13, fontWeight:600, cursor:"pointer", textTransform:"capitalize", transition:"var(--transition)"
+          }}>{t}{t==="documents"&&docs.filter(d=>d.status==="pending").length>0&&<span style={{ marginLeft:6, background:"var(--accent2)", color:"#fff", borderRadius:10, padding:"1px 7px", fontSize:11 }}>{docs.filter(d=>d.status==="pending").length}</span>}</button>
+        ))}
+      </div>
+
+      {/* Documents tab */}
+      {tab==="documents" && <div style={{ animation:"fadeIn 0.2s ease" }}>
+        {docs.length===0 ? <EmptyState icon="📭" title="No documents" sub="Uploads will appear here" /> :
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {docs.map(d=>{
+              const seller = users.find(u=>u.id===d.sellerId);
+              return <Card key={d.id} style={{ padding:"14px 18px" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:14, flexWrap:"wrap" }}>
+                  <div style={{ flex:1, minWidth:200 }}>
+                    <div style={{ fontWeight:600, marginBottom:3 }}>{d.title}</div>
+                    <div style={{ fontSize:12, color:"var(--ink3)" }}>{d.course} · {d.fileType} · by {seller?.name||"Unknown"} · {fmtDate(d.uploadDate)}</div>
+                    <div style={{ fontSize:12, color:"var(--ink2)", marginTop:2 }}>{truncate(d.description,80)}</div>
+                  </div>
+                  <Badge status={d.status} />
+                  <div style={{ fontFamily:"var(--font-display)", fontSize:18 }}>{fmt(d.price)}</div>
+                  <div style={{ display:"flex", gap:6 }}>
+                    {d.status==="pending" && <>
+                      <Btn variant="secondary" size="sm" style={{ color:"var(--accent)", borderColor:"var(--accent)" }} onClick={()=>onApprove(d.id)}>✓ Approve</Btn>
+                      <Btn variant="danger" size="sm" onClick={()=>onReject(d.id)}>✕ Reject</Btn>
+                    </>}
+                    {d.status!=="pending" && <Btn variant="danger" size="sm" onClick={()=>onRemove(d.id)}>Remove</Btn>}
+                  </div>
+                </div>
+              </Card>;
+            })}
+          </div>
+        }
+      </div>}
+
+      {/* Users tab */}
+      {tab==="users" && <div style={{ animation:"fadeIn 0.2s ease" }}>
+        <div style={{ background:"var(--surface)", border:"1.5px solid var(--border)", borderRadius:"var(--radius-lg)", overflow:"hidden" }}>
+          <table style={{ width:"100%", borderCollapse:"collapse" }}>
+            <thead><tr style={{ background:"var(--bg2)", borderBottom:"1.5px solid var(--border)" }}>
+              {["Name","Email","Institution","Course","Joined","Uploads"].map(h=><th key={h} style={{ padding:"11px 16px", textAlign:"left", fontSize:11, fontWeight:700, letterSpacing:"0.05em", textTransform:"uppercase", color:"var(--ink3)" }}>{h}</th>)}
+            </tr></thead>
+            <tbody>
+              {students.map((u,i)=>(
+                <tr key={u.id} style={{ borderBottom: i<students.length-1?"1px solid var(--border)":"none" }}
+                  onMouseOver={e=>e.currentTarget.style.background="var(--bg2)"}
+                  onMouseOut={e=>e.currentTarget.style.background="transparent"}>
+                  <td style={{ padding:"11px 16px", fontWeight:500 }}>{u.name}</td>
+                  <td style={{ padding:"11px 16px", color:"var(--ink2)", fontSize:13 }}>{u.email}</td>
+                  <td style={{ padding:"11px 16px", fontSize:13 }}>{u.institution}</td>
+                  <td style={{ padding:"11px 16px", fontSize:12, color:"var(--ink3)" }}>{u.course}</td>
+                  <td style={{ padding:"11px 16px", fontSize:12, color:"var(--ink3)" }}>{fmtDate(u.joined)}</td>
+                  <td style={{ padding:"11px 16px" }}>{docs.filter(d=>d.sellerId===u.id).length}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>}
+
+      {/* Revenue tab */}
+      {tab==="revenue" && <div style={{ animation:"fadeIn 0.2s ease" }}>
+        {purchases.length===0 ? <EmptyState icon="💰" title="No transactions yet" /> :
+          <div style={{ background:"var(--surface)", border:"1.5px solid var(--border)", borderRadius:"var(--radius-lg)", overflow:"hidden" }}>
+            <table style={{ width:"100%", borderCollapse:"collapse" }}>
+              <thead><tr style={{ background:"var(--bg2)", borderBottom:"1.5px solid var(--border)" }}>
+                {["Date","Document","Buyer","Amount","Commission"].map(h=><th key={h} style={{ padding:"11px 16px", textAlign:"left", fontSize:11, fontWeight:700, letterSpacing:"0.05em", textTransform:"uppercase", color:"var(--ink3)" }}>{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {purchases.map((p,i)=>{
+                  const doc=docs.find(d=>d.id===p.documentId);
+                  const buyer=users.find(u=>u.id===p.buyerId);
+                  return <tr key={p.id} style={{ borderBottom: i<purchases.length-1?"1px solid var(--border)":"none" }}>
+                    <td style={{ padding:"11px 16px", fontSize:12, color:"var(--ink3)" }}>{fmtDate(p.date)}</td>
+                    <td style={{ padding:"11px 16px", fontWeight:500 }}>{doc?.title||"—"}</td>
+                    <td style={{ padding:"11px 16px", fontSize:13, color:"var(--ink2)" }}>{buyer?.name||"—"}</td>
+                    <td style={{ padding:"11px 16px", fontFamily:"var(--font-display)", fontSize:17 }}>{fmt(p.amount)}</td>
+                    <td style={{ padding:"11px 16px", color:"var(--accent)", fontWeight:600 }}>{fmt(p.commission)}</td>
+                  </tr>;
+                })}
+              </tbody>
+              <tfoot><tr style={{ background:"var(--bg2)", borderTop:"2px solid var(--border)" }}>
+                <td colSpan={3} style={{ padding:"11px 16px", fontWeight:700, fontSize:12, textTransform:"uppercase", letterSpacing:"0.05em" }}>Total</td>
+                <td style={{ padding:"11px 16px", fontFamily:"var(--font-display)", fontSize:22 }}>{fmt(totalRevenue)}</td>
+                <td style={{ padding:"11px 16px", fontFamily:"var(--font-display)", fontSize:22, color:"var(--accent)" }}>{fmt(platformRevenue)}</td>
+              </tr></tfoot>
+            </table>
+          </div>
+        }
+      </div>}
+
+      {/* Payouts tab */}
+      {tab==="payouts" && <div style={{ animation:"fadeIn 0.2s ease" }}>
+        {payoutRequests.length===0 ? <EmptyState icon="💸" title="No payout requests" sub="Requests from sellers will appear here" /> :
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {payoutRequests.map(r=>{
+              const seller=users.find(u=>u.id===r.userId);
+              return <Card key={r.id} style={{ padding:"14px 18px" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:14, flexWrap:"wrap" }}>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontWeight:600, marginBottom:3 }}>{seller?.name} — Payout Request</div>
+                    <div style={{ fontSize:12, color:"var(--ink3)" }}>{seller?.institution} · Requested {fmtDate(r.date)}</div>
+                  </div>
+                  <div style={{ fontFamily:"var(--font-display)", fontSize:22, color:"var(--accent)" }}>{fmt(r.amount)}</div>
+                  <Badge status={r.status} />
+                  {r.status==="pending" && <Btn variant="secondary" size="sm" style={{ color:"var(--accent)" }} onClick={()=>onProcessPayout(r.id)}>Process ✓</Btn>}
+                </div>
+              </Card>;
+            })}
+          </div>
+        }
+      </div>}
+    </div>
+  );
+};
+
+// ─── ROOT APP ──────────────────────────────────────────────────
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [page, setPage] = useState("marketplace");
+  const [users, setUsers] = useState(SEED.users);
+  const [docs, setDocs] = useState(SEED.documents);
+  const [purchases, setPurchases] = useState(SEED.purchases);
+  const [payoutRequests, setPayoutRequests] = useState(SEED.payoutRequests);
+
+  const handleLogin = (u) => {
+    setUser(u);
+    setPage(u.role === "admin" ? "admin" : "marketplace");
+  };
+
+  const handleBuy = (doc) => {
+    const commission = doc.price * COMMISSION;
+    setPurchases(p => [...p, { id: uid(), buyerId: user.id, documentId: doc.id, amount: doc.price, date: new Date().toISOString().split("T")[0], commission }]);
+    setDocs(d => d.map(dd => dd.id === doc.id ? { ...dd, downloads: dd.downloads + 1 } : dd));
+  };
+
+  const handleUpload = (doc) => setDocs(p => [...p, doc]);
+  const handleApprove = (id) => setDocs(d => d.map(dd => dd.id===id ? {...dd, status:"approved"} : dd));
+  const handleReject = (id) => setDocs(d => d.map(dd => dd.id===id ? {...dd, status:"rejected"} : dd));
+  const handleRemove = (id) => setDocs(d => d.filter(dd => dd.id !== id));
+  const handleRequestPayout = (req) => setPayoutRequests(p => [...p, req]);
+  const handleProcessPayout = (id) => setPayoutRequests(p => p.map(r => r.id===id ? {...r, status:"approved"} : r));
+  const handleRegister = (u) => setUsers(p => [...p, u]);
+
+  if (!user) return (<><GlobalStyles /><AuthPage onLogin={handleLogin} users={users} onRegister={handleRegister} /></>);
+
+  return (
+    <>
+      <GlobalStyles />
+      <style>{`.hide-mobile { display: flex; } @media(max-width:768px){.hide-mobile{display:none!important;}}`}</style>
+      <TopNav user={user} page={page} onNav={setPage} onLogout={() => { setUser(null); setPage("marketplace"); }} />
+      {page === "marketplace" && user.role !== "admin" && <Marketplace docs={docs} user={user} purchases={purchases} onBuy={handleBuy} />}
+      {page === "dashboard" && user.role !== "admin" && <SellerDashboard user={user} docs={docs} purchases={purchases} payoutRequests={payoutRequests} onUpload={handleUpload} onRequestPayout={handleRequestPayout} />}
+      {page === "admin" && user.role === "admin" && <AdminPanel docs={docs} users={users} purchases={purchases} payoutRequests={payoutRequests} onApprove={handleApprove} onReject={handleReject} onRemove={handleRemove} onProcessPayout={handleProcessPayout} />}
+    </>
+  );
+}
